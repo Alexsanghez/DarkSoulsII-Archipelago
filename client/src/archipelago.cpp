@@ -43,7 +43,6 @@ bool _died_by_deathlink = false;
 int last_received_index = -1;
 std::set<int32_t> locations_to_ignore;
 std::queue<APClient::NetworkItem> items_to_give;
-std::map<std::pair<int32_t, int64_t>, int8_t> weapon_upgrade_levels;
 std::map<std::pair<int32_t, int64_t>, std::pair<int8_t, int8_t>> weapon_randomized_levels;
 
 enum ItemsHandling {
@@ -64,7 +63,6 @@ void reset_apclient()
 	_died_by_deathlink = false;
 	last_received_index = 0;
 	locations_to_ignore.clear();
-	weapon_upgrade_levels.clear();
 	weapon_randomized_levels.clear();
 	while (!items_to_give.empty()) {
 		items_to_give.pop();
@@ -123,18 +121,6 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 		}
 		if (data.contains("autoequip") && data.at("autoequip") == 1) {
 			autoequip = true;
-		}
-
-		weapon_upgrade_levels.clear();
-		if (data.contains("weapon_upgrade_levels") && data.at("weapon_upgrade_levels").is_array()) {
-			for (const auto& entry : data.at("weapon_upgrade_levels")) {
-				if (!entry.is_array() || entry.size() != 3) continue;
-				int32_t source_player = entry.at(0).get<int32_t>();
-				int64_t source_location = entry.at(1).get<int64_t>();
-				int normalized_level = entry.at(2).get<int>();
-				weapon_upgrade_levels[{ source_player, source_location }] = static_cast<int8_t>(std::clamp(normalized_level, 0, 10));
-			}
-			spdlog::info("Loaded {} progression weapon reinforcement levels", weapon_upgrade_levels.size());
 		}
 
 		weapon_randomized_levels.clear();
@@ -229,19 +215,13 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 					location_rewards[item.location] = item.item;
 				}
 
-				auto upgrade = weapon_upgrade_levels.find({ ap->get_player_number(), item.location });
-				if (upgrade != weapon_upgrade_levels.end()) {
-					local_weapon_upgrades[item.location] = upgrade->second;
-				}
-				else {
-					auto randomized_upgrade = weapon_randomized_levels.find({ ap->get_player_number(), item.location });
-					if (randomized_upgrade != weapon_randomized_levels.end()) {
-						local_weapon_upgrades[item.location] = select_cap_specific_normalized_upgrade(
-							static_cast<int32_t>(item.item),
-							randomized_upgrade->second.first,
-							randomized_upgrade->second.second
-						);
-					}
+				auto randomized_upgrade = weapon_randomized_levels.find({ ap->get_player_number(), item.location });
+				if (randomized_upgrade != weapon_randomized_levels.end()) {
+					local_weapon_upgrades[item.location] = select_cap_specific_normalized_upgrade(
+						static_cast<int32_t>(item.item),
+						randomized_upgrade->second.first,
+						randomized_upgrade->second.second
+					);
 				}
 			}
 			else {
@@ -328,19 +308,13 @@ int64_t get_next_item(int8_t& normalized_upgrade)
 	normalized_upgrade = 0;
 	if (!items_to_give.empty()) {
 		APClient::NetworkItem network_item = items_to_give.front();
-		auto upgrade = weapon_upgrade_levels.find({ network_item.player, network_item.location });
-		if (upgrade != weapon_upgrade_levels.end()) {
-			normalized_upgrade = upgrade->second;
-		}
-		else {
-			auto randomized_upgrade = weapon_randomized_levels.find({ network_item.player, network_item.location });
-			if (randomized_upgrade != weapon_randomized_levels.end()) {
-				normalized_upgrade = select_cap_specific_normalized_upgrade(
-					static_cast<int32_t>(network_item.item),
-					randomized_upgrade->second.first,
-					randomized_upgrade->second.second
-				);
-			}
+		auto randomized_upgrade = weapon_randomized_levels.find({ network_item.player, network_item.location });
+		if (randomized_upgrade != weapon_randomized_levels.end()) {
+			normalized_upgrade = select_cap_specific_normalized_upgrade(
+				static_cast<int32_t>(network_item.item),
+				randomized_upgrade->second.first,
+				randomized_upgrade->second.second
+			);
 		}
 
 		items_to_give.pop();
