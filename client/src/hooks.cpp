@@ -3,6 +3,7 @@
 #include "offsets.h"
 #include "memory.h"
 #include "ds2.h"
+#include "params.h"
 
 #include "spdlog/spdlog.h"
 #include "minhook.h"
@@ -21,9 +22,11 @@ HOOKS
 
 bool hooks_enabled = false;
 bool _autoequip = false;
+int8_t _pending_weapon_upgrade = -1;
 std::map<int, std::wstring> item_names;
 std::map<int32_t, std::string> _reward_names;
 std::map<int32_t, int32_t> _custom_items;
+std::map<int32_t, int8_t> _weapon_upgrades;
 std::list<int32_t> locations_to_check;
 
 std::wstring remove_special_characters(const std::wstring& input)
@@ -82,6 +85,17 @@ void handle_location_checked(int32_t location_id)
     locations_to_check.push_back(location_id);
 }
 
+void set_pending_weapon_upgrade(int32_t location_id)
+{
+    auto upgrade = _weapon_upgrades.find(location_id);
+    _pending_weapon_upgrade = upgrade != _weapon_upgrades.end() ? upgrade->second : -1;
+}
+
+void clear_pending_weapon_upgrade()
+{
+    _pending_weapon_upgrade = -1;
+}
+
 INT __stdcall detour_getaddrinfo(PCSTR address, PCSTR port, const ADDRINFOA* pHints, PADDRINFOA* ppResult)
 {
 #ifdef _M_IX86
@@ -103,6 +117,10 @@ void __fastcall detour_add_item_to_inventory(uintptr_t param_1, void* _edx, Item
 void __cdecl detour_add_item_to_inventory(uintptr_t param_1, Item* param_2)
 #endif
 {
+    if (_pending_weapon_upgrade >= 0) {
+        param_2->upgrade = scale_weapon_upgrade(param_2->item_id, _pending_weapon_upgrade);
+    }
+
     original_add_item_to_inventory(param_1, param_2);
     if (_autoequip && std::find(unused_item_ids.begin(), unused_item_ids.end(), param_2->item_id) == unused_item_ids.end())
         equip_last_received_item();
@@ -118,7 +136,10 @@ void __cdecl detour_give_items_on_reward(uintptr_t param_1, uintptr_t param_2, i
     int32_t itemlot_id = read_value<int32_t>(param_2);
     spdlog::debug("was rewarded: {}", itemlot_id);
     handle_location_checked(itemlot_id);
-    return original_give_items_on_reward(param_1, param_2, param_3, param_4, param_5);
+    set_pending_weapon_upgrade(itemlot_id);
+    original_give_items_on_reward(param_1, param_2, param_3, param_4, param_5);
+    clear_pending_weapon_upgrade();
+    return;
 }
 
 #ifdef _M_IX86
@@ -130,13 +151,18 @@ char __cdecl detour_give_items_on_pickup(uintptr_t param_1, uintptr_t param_2)
     int32_t itemlot_id = get_pickup_id(param_2, get_base_address());
     spdlog::debug("picked up: {}", itemlot_id);
 
+    clear_pending_weapon_upgrade();
+
     // janky way to fix the problem that some pickups
     // have the same id as some of the shop items
     if (!shop_prices.contains(itemlot_id)) {
         handle_location_checked(itemlot_id);
+        set_pending_weapon_upgrade(itemlot_id);
     }
 
-    return original_give_items_on_pickup(param_1, param_2);
+    char result = original_give_items_on_pickup(param_1, param_2);
+    clear_pending_weapon_upgrade();
+    return result;
 }
 
 #ifdef _M_IX86
@@ -149,7 +175,10 @@ char __cdecl detour_give_shop_item(uintptr_t param_1, uintptr_t param_2, int32_t
     int32_t shop_lineup_id = read_value<int32_t>(param_2 + offset);
     spdlog::debug("just bought: {}", shop_lineup_id);
     handle_location_checked(shop_lineup_id);
-    return original_give_shop_item(param_1, param_2, param_3);
+    set_pending_weapon_upgrade(shop_lineup_id);
+    char result = original_give_shop_item(param_1, param_2, param_3);
+    clear_pending_weapon_upgrade();
+    return result;
 }
 
 const wchar_t* __cdecl detour_get_item_info(int32_t flag, int32_t item_id)
@@ -234,12 +263,13 @@ size_t __cdecl detour_virtual_to_archive_path(uintptr_t param_1, DLString* path)
     return original_virtual_to_archive_path(param_1, path);
 }
 
-void init_hooks(std::map<int32_t, std::string> reward_names, std::map<int32_t, int32_t> custom_items, bool autoequip)
+void init_hooks(std::map<int32_t, std::string> reward_names, std::map<int32_t, int32_t> custom_items, std::map<int32_t, int8_t> weapon_upgrades, bool autoequip)
 {
     uintptr_t base_address = get_base_address();
 
     _reward_names = reward_names;
     _custom_items = custom_items;
+    _weapon_upgrades = weapon_upgrades;
     _autoequip = autoequip;
 
     if (hooks_enabled) return;
