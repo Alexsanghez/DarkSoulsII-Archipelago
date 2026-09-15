@@ -108,7 +108,7 @@ int8_t scale_weapon_upgrade(int32_t item_id, int8_t normalized_level)
     return static_cast<int8_t>((normalized * max_upgrade + 5) / 10);
 }
 
-int8_t select_cap_specific_weapon_upgrade(int32_t item_id, int8_t plus5_level, int8_t plus10_level)
+int8_t select_cap_specific_normalized_upgrade(int32_t item_id, int8_t plus5_level, int8_t plus10_level)
 {
     static std::map<int32_t, int8_t> weapon_caps = get_weapon_max_upgrades();
 
@@ -119,6 +119,10 @@ int8_t select_cap_specific_weapon_upgrade(int32_t item_id, int8_t plus5_level, i
     int candidate = max_upgrade <= 5
         ? static_cast<int>(plus5_level)
         : static_cast<int>(plus10_level);
+    candidate = std::clamp(candidate, 0, max_upgrade);
 
-    return static_cast<int8_t>(std::clamp(candidate, 0, max_upgrade));
+    // Convert the chosen real reinforcement level back to the normalized +0..+10 scale.
+    // The existing scale_weapon_upgrade() path then maps this back to the item's real cap.
+    int normalized = (candidate * 10 + max_upgrade / 2) / max_upgrade;
+    return static_cast<int8_t>(std::clamp(normalized, 0, 10));
 }
