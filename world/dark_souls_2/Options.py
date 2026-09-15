@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import PerGameCommonOptions, DeathLink, Toggle, Choice, ExcludeLocations, StartInventory, DefaultOnToggle
+from Options import PerGameCommonOptions, DeathLink, Toggle, Choice, ExcludeLocations, StartInventory, DefaultOnToggle, Range
 
 class NoWeaponRequirements(Toggle):
     """Remove the requirements to wield weapons"""
@@ -28,6 +28,52 @@ class StartingWeaponRequirement(Choice):
     option_usable_with_two_hands = 1
     option_no_requirements = 2
     default = option_usable_with_two_hands
+
+class WeaponUpgradeMode(Choice):
+    """Controls reinforcement levels for randomized weapons and shields.
+
+    Off keeps every randomized weapon/shield at +0.
+    Randomized upgrades a configurable percentage, with separate +5 and +10 ranges.
+    """
+    display_name = "Weapon Upgrade Levels"
+    option_off = 0
+    option_randomized = 1
+    default = option_off
+
+class WeaponUpgradePercentage(Range):
+    """Percentage of randomized weapons/shields that receive a reinforcement roll."""
+    display_name = "Percentage of Randomized Weapons"
+    range_start = 0
+    range_end = 100
+    default = 33
+
+class WeaponUpgradePlus5MinLevel(Range):
+    """Minimum reinforcement candidate for equipment whose real reinforcement cap is +5."""
+    display_name = "Minimum Level of +5 Weapons"
+    range_start = 0
+    range_end = 5
+    default = 1
+
+class WeaponUpgradePlus5MaxLevel(Range):
+    """Maximum reinforcement candidate for equipment whose real reinforcement cap is +5."""
+    display_name = "Maximum Level of +5 Weapons"
+    range_start = 0
+    range_end = 5
+    default = 5
+
+class WeaponUpgradePlus10MinLevel(Range):
+    """Minimum reinforcement candidate for equipment whose real reinforcement cap is +10."""
+    display_name = "Minimum Level of +10 Weapons"
+    range_start = 0
+    range_end = 10
+    default = 1
+
+class WeaponUpgradePlus10MaxLevel(Range):
+    """Maximum reinforcement candidate for equipment whose real reinforcement cap is +10."""
+    display_name = "Maximum Level of +10 Weapons"
+    range_start = 0
+    range_end = 10
+    default = 10
 
 
 class OldIronKingDLC(Toggle):
@@ -103,6 +149,12 @@ class DS2Options(PerGameCommonOptions):
     autoequip: AutoEquip
     randomize_starting_loadout: RandomizeStartingLoadout
     starting_weapon_requirement: StartingWeaponRequirement
+    weapon_upgrade_mode: WeaponUpgradeMode
+    weapon_upgrade_percentage: WeaponUpgradePercentage
+    weapon_upgrade_plus5_min_level: WeaponUpgradePlus5MinLevel
+    weapon_upgrade_plus5_max_level: WeaponUpgradePlus5MaxLevel
+    weapon_upgrade_plus10_min_level: WeaponUpgradePlus10MinLevel
+    weapon_upgrade_plus10_max_level: WeaponUpgradePlus10MaxLevel
     enable_ngp: EnableNGPOption
     early_blacksmith: EarlyBlacksmith
     infinite_lifegems: KeepInfiniteLifegems

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cstdint>
 #include <string>
 #include <set>
 #include <list>
@@ -10,7 +12,7 @@ bool is_death_link();
 void apclient_poll();
 void apclient_say(std::string message);
 
-int64_t get_next_item();
+int64_t get_next_item(int8_t& normalized_upgrade);
 void confirm_items_given(int amount);
 void check_locations(std::list<int32_t> locations);
 void send_death_link();

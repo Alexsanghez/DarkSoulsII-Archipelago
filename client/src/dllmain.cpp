@@ -8,6 +8,7 @@
 #include "ds2.h"
 #include "patches.h"
 #include "memory.h"
+#include "params.h"
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -129,7 +130,8 @@ void handle_give_items()
 
     for (int i = 0; i < 8; i++) {
 
-        int64_t item_id = get_next_item();
+        int8_t normalized_upgrade = 0;
+        int64_t item_id = get_next_item(normalized_upgrade);
         if (item_id == -1) break;
 
         Item item;
@@ -156,6 +158,7 @@ void handle_give_items()
         }
         else {
             item.item_id = static_cast<int32_t>(item_id);
+            item.upgrade = scale_weapon_upgrade(item.item_id, normalized_upgrade);
         }
 
         item_struct.items[i] = item;

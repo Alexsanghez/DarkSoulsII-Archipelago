@@ -6,6 +6,7 @@
 #include "hooks.h"
 #include "game_functions.h"
 #include "ds2.h"
+#include "params.h"
 
 #include "spdlog/spdlog.h"
 
@@ -19,6 +20,7 @@
 #include <map>
 #include <queue>
 #include <string>
+#include <utility>
 
 #if defined(_M_X64)
 	#define GAME_VERSION 0
@@ -41,6 +43,7 @@ bool _died_by_deathlink = false;
 int last_received_index = -1;
 std::set<int32_t> locations_to_ignore;
 std::queue<APClient::NetworkItem> items_to_give;
+std::map<std::pair<int32_t, int64_t>, std::pair<int8_t, int8_t>> weapon_randomized_levels;
 
 enum ItemsHandling {
 	NO_ITEMS = 0b000,
@@ -55,10 +58,12 @@ void reset_apclient()
 	room_id_key.clear();
 	room_id_value.clear();
 	death_link = false;
+	autoequip = false;
 	save_loaded = false;
 	_died_by_deathlink = false;
 	last_received_index = 0;
 	locations_to_ignore.clear();
+	weapon_randomized_levels.clear();
 	while (!items_to_give.empty()) {
 		items_to_give.pop();
 	}
@@ -116,6 +121,22 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 		}
 		if (data.contains("autoequip") && data.at("autoequip") == 1) {
 			autoequip = true;
+		}
+
+		weapon_randomized_levels.clear();
+		if (data.contains("weapon_randomized_levels") && data.at("weapon_randomized_levels").is_array()) {
+			for (const auto& entry : data.at("weapon_randomized_levels")) {
+				if (!entry.is_array() || entry.size() != 4) continue;
+				int32_t source_player = entry.at(0).get<int32_t>();
+				int64_t source_location = entry.at(1).get<int64_t>();
+				int plus5_level = entry.at(2).get<int>();
+				int plus10_level = entry.at(3).get<int>();
+				weapon_randomized_levels[{ source_player, source_location }] = {
+					static_cast<int8_t>(std::clamp(plus5_level, 0, 5)),
+					static_cast<int8_t>(std::clamp(plus10_level, 0, 10))
+				};
+			}
+			spdlog::info("Loaded {} randomized weapon reinforcement candidates", weapon_randomized_levels.size());
 		}
 
 		locations_to_ignore.insert(1700000); // estus flask from emerald herald
@@ -179,6 +200,7 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 		std::map<int32_t, int32_t> location_rewards;
 		std::map<int32_t, int32_t> custom_items;
 		std::map<int32_t, std::string> reward_names;
+		std::map<int32_t, int8_t> local_weapon_upgrades;
 		for (const auto& item : items) {
 			if (item.player == ap->get_player_number()) {
 				// if the id is less than 1000000 it's a custom item
@@ -192,6 +214,15 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 				else {
 					location_rewards[item.location] = item.item;
 				}
+
+				auto randomized_upgrade = weapon_randomized_levels.find({ ap->get_player_number(), item.location });
+				if (randomized_upgrade != weapon_randomized_levels.end()) {
+					local_weapon_upgrades[item.location] = select_cap_specific_normalized_upgrade(
+						static_cast<int32_t>(item.item),
+						randomized_upgrade->second.first,
+						randomized_upgrade->second.second
+					);
+				}
 			}
 			else {
 				location_rewards[item.location] = the_item_id;
@@ -202,7 +233,7 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 			}
 		}
 		override_item_params(location_rewards, player_seed, locations_to_ignore);
-		init_hooks(reward_names, custom_items, autoequip);
+		init_hooks(reward_names, custom_items, local_weapon_upgrades, autoequip);
 	});
 
 	ap->set_items_received_handler([](const std::list<APClient::NetworkItem>& received_items) {
@@ -272,12 +303,22 @@ void apclient_say(std::string message)
 	}
 }
 
-int64_t get_next_item()
+int64_t get_next_item(int8_t& normalized_upgrade)
 {
+	normalized_upgrade = 0;
 	if (!items_to_give.empty()) {
-		int64_t item = items_to_give.front().item;
+		APClient::NetworkItem network_item = items_to_give.front();
+		auto randomized_upgrade = weapon_randomized_levels.find({ network_item.player, network_item.location });
+		if (randomized_upgrade != weapon_randomized_levels.end()) {
+			normalized_upgrade = select_cap_specific_normalized_upgrade(
+				static_cast<int32_t>(network_item.item),
+				randomized_upgrade->second.first,
+				randomized_upgrade->second.second
+			);
+		}
+
 		items_to_give.pop();
-		return item;
+		return network_item.item;
 	}
 	return -1;
 }

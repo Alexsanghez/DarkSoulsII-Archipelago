@@ -20,7 +20,7 @@ typedef struct {
     UINT64 capacity;
 } DLString;
 
-void init_hooks(std::map<int32_t, std::string> reward_names, std::map<int32_t, int32_t> custom_items, bool autoequip);
+void init_hooks(std::map<int32_t, std::string> reward_names, std::map<int32_t, int32_t> custom_items, std::map<int32_t, int8_t> weapon_upgrades, bool autoequip);
 void force_offline();
 std::list<int32_t> get_locations_to_check();
 void clear_locations_to_check();
