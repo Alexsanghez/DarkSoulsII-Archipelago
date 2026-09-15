@@ -5,7 +5,6 @@ from random import Random
 class WeaponUpgradeMode(IntEnum):
     OFF = 0
     RANDOMIZED = 1
-    PROGRESSION = 2
 
 
 def _clamp(value: int, lower: int, upper: int) -> int:
@@ -18,30 +17,6 @@ def _normalized_bounds(min_level: int, max_level: int, cap: int) -> tuple[int, i
     if lower > upper:
         lower, upper = upper, lower
     return lower, upper
-
-
-def roll_normalized_upgrade(
-    rng: Random,
-    mode: int | WeaponUpgradeMode,
-    min_level: int,
-    max_level: int,
-    variance: int,
-    progress: float,
-) -> int:
-    """Return a deterministic progression reinforcement tier on the normalized 0..10 scale."""
-    try:
-        mode = WeaponUpgradeMode(mode)
-    except ValueError:
-        mode = WeaponUpgradeMode.OFF
-
-    if mode != WeaponUpgradeMode.PROGRESSION:
-        return 0
-
-    lower, upper = _normalized_bounds(min_level, max_level, 10)
-    clamped_progress = max(0.0, min(1.0, float(progress)))
-    target = round(lower + (upper - lower) * clamped_progress)
-    spread = _clamp(int(variance), 0, 10)
-    return _clamp(target + rng.randint(-spread, spread), lower, upper)
 
 
 def roll_randomized_upgrade_pair(
@@ -70,31 +45,6 @@ def roll_randomized_upgrade_pair(
     )
 
 
-def format_progression_weapon_upgrade_spoiler(
-    player_name: str,
-    min_level: int,
-    max_level: int,
-    variance: int,
-    entries: list[tuple[int | None, int, str, str, str, int]],
-) -> str:
-    lines = [
-        "",
-        "",
-        f"Dark Souls II Weapon Reinforcement Levels ({player_name}):",
-        f"Mode: progression | Normalized range: +{min_level}..+{max_level} | Variance: +/-{variance}",
-        "Note: levels are normalized to the +0..+10 scale; +5 equipment is scaled by the client.",
-    ]
-
-    for sphere_index, progress_percent, source_player, location_name, item_name, level in entries:
-        sphere_label = f"Sphere {sphere_index}" if sphere_index is not None else "Fallback"
-        lines.append(
-            f"{sphere_label} ({progress_percent}%): [{source_player}] {location_name} -> "
-            f"{item_name} | normalized +{level}/10"
-        )
-
-    return "\n".join(lines) + "\n"
-
-
 def format_randomized_weapon_upgrade_spoiler(
     player_name: str,
     percentage: int,
@@ -120,21 +70,3 @@ def format_randomized_weapon_upgrade_spoiler(
         )
 
     return "\n".join(lines) + "\n"
-
-
-def format_weapon_upgrade_spoiler(
-    player_name: str,
-    mode: str,
-    min_level: int,
-    max_level: int,
-    variance: int,
-    entries: list[tuple[int | None, int, str, str, str, int]],
-) -> str:
-    """Backward-compatible alias used by the preserved base world implementation."""
-    return format_progression_weapon_upgrade_spoiler(
-        player_name=player_name,
-        min_level=min_level,
-        max_level=max_level,
-        variance=variance,
-        entries=entries,
-    )
