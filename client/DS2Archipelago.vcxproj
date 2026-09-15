@@ -208,6 +208,7 @@
   <ItemGroup>
     <ClCompile Include="src\archipelago.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
+    <ClCompile Include="src\enemy_randomizer_bridge.cpp" />
     <ClCompile Include="src\game_functions.cpp" />
     <ClCompile Include="src\hooks.cpp" />
     <ClCompile Include="src\memory.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="src\archipelago.h" />
     <ClInclude Include="src\dinput8\dinput8.h" />
     <ClInclude Include="src\ds2.h" />
+    <ClInclude Include="src\enemy_randomizer_bridge.h" />
     <ClInclude Include="src\game_functions.h" />
     <ClInclude Include="src\hooks.h" />
     <ClInclude Include="src\memory.h" />
