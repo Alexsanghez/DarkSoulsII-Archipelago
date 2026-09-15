@@ -33,17 +33,15 @@ class WeaponUpgradeMode(Choice):
     """Controls reinforcement levels for randomized weapons and shields.
 
     Off keeps every randomized weapon/shield at +0.
-    Randomized upgrades a configurable percentage independently of progression, with separate +5 and +10 ranges.
-    Progression scales reinforcement levels with Archipelago sphere depth, with optional variance.
+    Randomized upgrades a configurable percentage, with separate +5 and +10 ranges.
     """
     display_name = "Weapon Upgrade Levels"
     option_off = 0
     option_randomized = 1
-    option_progression = 2
     default = option_off
 
 class WeaponUpgradePercentage(Range):
-    """Percentage of randomized weapons/shields that receive a non-vanilla reinforcement roll in randomized mode."""
+    """Percentage of randomized weapons/shields that receive a reinforcement roll."""
     display_name = "Percentage of Randomized Weapons"
     range_start = 0
     range_end = 100
@@ -76,27 +74,6 @@ class WeaponUpgradePlus10MaxLevel(Range):
     range_start = 0
     range_end = 10
     default = 10
-
-class WeaponUpgradeMinLevel(Range):
-    """Minimum normalized reinforcement level used by progression mode."""
-    display_name = "Weapon Upgrade Minimum Level"
-    range_start = 0
-    range_end = 10
-    default = 0
-
-class WeaponUpgradeMaxLevel(Range):
-    """Maximum normalized reinforcement level used by progression mode."""
-    display_name = "Weapon Upgrade Maximum Level"
-    range_start = 0
-    range_end = 10
-    default = 10
-
-class WeaponUpgradeVariance(Range):
-    """Maximum random deviation from the sphere-scaled target in progression mode."""
-    display_name = "Weapon Upgrade Progression Variance"
-    range_start = 0
-    range_end = 5
-    default = 2
 
 
 class OldIronKingDLC(Toggle):
@@ -178,9 +155,6 @@ class DS2Options(PerGameCommonOptions):
     weapon_upgrade_plus5_max_level: WeaponUpgradePlus5MaxLevel
     weapon_upgrade_plus10_min_level: WeaponUpgradePlus10MinLevel
     weapon_upgrade_plus10_max_level: WeaponUpgradePlus10MaxLevel
-    weapon_upgrade_min_level: WeaponUpgradeMinLevel
-    weapon_upgrade_max_level: WeaponUpgradeMaxLevel
-    weapon_upgrade_variance: WeaponUpgradeVariance
     enable_ngp: EnableNGPOption
     early_blacksmith: EarlyBlacksmith
     infinite_lifegems: KeepInfiniteLifegems
