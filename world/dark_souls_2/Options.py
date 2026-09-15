@@ -75,6 +75,21 @@ class WeaponUpgradePlus10MaxLevel(Range):
     range_end = 10
     default = 10
 
+class EnemyRandomizer(Toggle):
+    """Enable Archipelago-controlled enemy randomization.
+
+    V1 supports Scholar of the First Sin only. Normal enemies are randomized while NPCs,
+    invaders, summons, mimics, lizards, wandering bosses, and multiboss remain unchanged.
+    """
+    display_name = "Enemy Randomizer"
+
+class EnemyRandomizerBosses(DefaultOnToggle):
+    """Randomize bosses when Enemy Randomizer is enabled."""
+    display_name = "Enemy Randomizer - Bosses"
+
+class EnemyRandomizerScaling(DefaultOnToggle):
+    """Use the DS2 enemy randomizer's location-based enemy and boss scaling."""
+    display_name = "Enemy Randomizer - Scaling"
 
 class OldIronKingDLC(Toggle):
     """Enable Crown of the Old Iron King DLC, randomizing items and locations within Brume Tower."""
@@ -155,6 +170,9 @@ class DS2Options(PerGameCommonOptions):
     weapon_upgrade_plus5_max_level: WeaponUpgradePlus5MaxLevel
     weapon_upgrade_plus10_min_level: WeaponUpgradePlus10MinLevel
     weapon_upgrade_plus10_max_level: WeaponUpgradePlus10MaxLevel
+    enemy_randomizer: EnemyRandomizer
+    enemy_randomizer_bosses: EnemyRandomizerBosses
+    enemy_randomizer_scaling: EnemyRandomizerScaling
     enable_ngp: EnableNGPOption
     early_blacksmith: EarlyBlacksmith
     infinite_lifegems: KeepInfiniteLifegems
