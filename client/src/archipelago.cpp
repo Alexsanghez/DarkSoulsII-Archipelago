@@ -110,6 +110,25 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 			fatal_error = true;
 			return;
 #else
+			if (!enemy_randomizer_ap_is_chain_loaded()) {
+				spdlog::error(
+					"Enemy Randomizer V1 needs DS2SRandomizer's ModEngine dinput8.dll as the primary loader. "
+					"Rename the Archipelago DLL to archipelago.dll and set "
+					"chainDInput8DLLPath=\"\\archipelago.dll\" in modengine.ini."
+				);
+				fatal_error = true;
+				return;
+			}
+
+			if (!load_enemy_randomizer_runtime_support()) {
+				spdlog::error(
+					"Enemy Randomizer V1 could not load the DS2SRandomizer runtime. "
+					"Make sure modengine.ini, ds2s_heap_x.dll, and randomizer\\DS2SRandomizer.exe are installed."
+				);
+				fatal_error = true;
+				return;
+			}
+
 			if (!data.contains("enemy_randomizer_config") || !data.at("enemy_randomizer_config").is_string()) {
 				spdlog::error("Enemy Randomizer V1 is enabled, but the slot did not provide enemy_randomizer_config.");
 				fatal_error = true;
@@ -141,8 +160,8 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 				break;
 			case EnemyRandomizerPrepareResult::MissingInstallation:
 				spdlog::error(
-					"Enemy Randomizer V1 is enabled, but DS2SRandomizer.exe was not found. "
-					"Install DS2 Item & Enemy Randomizer in Game\\randomizer or next to DarkSoulsII.exe."
+					"Enemy Randomizer V1 installation is incomplete. "
+					"Expected modengine.ini, ds2s_heap_x.dll, and DS2SRandomizer.exe."
 				);
 				fatal_error = true;
 				return;
