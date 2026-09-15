@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import PerGameCommonOptions, DeathLink, Toggle, Choice, ExcludeLocations, StartInventory, DefaultOnToggle
+from Options import PerGameCommonOptions, DeathLink, Toggle, Choice, ExcludeLocations, StartInventory, DefaultOnToggle, Range
 
 class NoWeaponRequirements(Toggle):
     """Remove the requirements to wield weapons"""
@@ -28,6 +28,41 @@ class StartingWeaponRequirement(Choice):
     option_usable_with_two_hands = 1
     option_no_requirements = 2
     default = option_usable_with_two_hands
+
+class WeaponUpgradeMode(Choice):
+    """Controls reinforcement levels for randomized weapons.
+
+    Off keeps every randomized weapon at +0.
+    Random chooses a seed-deterministic level between the configured minimum and maximum.
+    Progression scales weapon levels with Archipelago sphere depth, with optional variance.
+    Weapons that naturally cap at +5 are scaled proportionally by the client.
+    """
+    display_name = "Weapon Upgrade Levels"
+    option_off = 0
+    option_random = 1
+    option_progression = 2
+    default = option_off
+
+class WeaponUpgradeMinLevel(Range):
+    """Minimum normalized reinforcement level. Uses the normal +0 to +10 scale."""
+    display_name = "Weapon Upgrade Minimum Level"
+    range_start = 0
+    range_end = 10
+    default = 0
+
+class WeaponUpgradeMaxLevel(Range):
+    """Maximum normalized reinforcement level. +5 weapons are scaled proportionally."""
+    display_name = "Weapon Upgrade Maximum Level"
+    range_start = 0
+    range_end = 10
+    default = 10
+
+class WeaponUpgradeVariance(Range):
+    """Maximum random deviation from the sphere-scaled target in progression mode."""
+    display_name = "Weapon Upgrade Progression Variance"
+    range_start = 0
+    range_end = 5
+    default = 2
 
 
 class OldIronKingDLC(Toggle):
@@ -103,6 +138,10 @@ class DS2Options(PerGameCommonOptions):
     autoequip: AutoEquip
     randomize_starting_loadout: RandomizeStartingLoadout
     starting_weapon_requirement: StartingWeaponRequirement
+    weapon_upgrade_mode: WeaponUpgradeMode
+    weapon_upgrade_min_level: WeaponUpgradeMinLevel
+    weapon_upgrade_max_level: WeaponUpgradeMaxLevel
+    weapon_upgrade_variance: WeaponUpgradeVariance
     enable_ngp: EnableNGPOption
     early_blacksmith: EarlyBlacksmith
     infinite_lifegems: KeepInfiniteLifegems
