@@ -24,6 +24,9 @@
     <ClCompile Include="src\archipelago.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\enemy_randomizer_bridge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\game_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -62,6 +65,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\archipelago.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\enemy_randomizer_bridge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game_functions.h">
