@@ -7,7 +7,7 @@ from BaseClasses import Item, ItemClassification, Location, Region, LocationProg
 from .Items import item_list, repeatable_categories, group_table, ItemCategory, DLC
 from .Locations import location_table, location_name_groups
 from .Options import DS2Options
-from .WeaponUpgrades import roll_normalized_upgrade
+from .WeaponUpgrades import format_weapon_upgrade_spoiler, roll_normalized_upgrade
 from typing import Optional
 
 class DS2Location(Location):
@@ -610,6 +610,63 @@ class DS2World(World):
             result.append([location.player, location.address, level])
 
         return result
+
+    def write_spoiler(self, spoiler_handle) -> None:
+        if self.options.weapon_upgrade_mode == "off":
+            return
+
+        levels = self._build_weapon_upgrade_levels()
+        if not levels:
+            return
+
+        spheres = list(self.multiworld.get_spheres())
+        denominator = max(1, len(spheres) - 1)
+        sphere_by_location: dict[tuple[int, int], int] = {}
+        for sphere_index, sphere in enumerate(spheres):
+            for location in sphere:
+                if isinstance(location.address, int):
+                    sphere_by_location[(location.player, location.address)] = sphere_index
+
+        locations_by_key = {
+            (location.player, location.address): location
+            for location in self.multiworld.get_filled_locations()
+            if isinstance(location.address, int)
+        }
+
+        entries: list[tuple[int | None, int, str, str, str, int]] = []
+        for source_player, location_id, level in levels:
+            key = (source_player, location_id)
+            location = locations_by_key.get(key)
+            if location is None or location.item is None:
+                continue
+
+            sphere_index = sphere_by_location.get(key)
+            progress_percent = 100 if sphere_index is None else round((sphere_index / denominator) * 100)
+            entries.append((
+                sphere_index,
+                progress_percent,
+                self.multiworld.get_player_name(source_player),
+                location.name,
+                location.item.name,
+                level,
+            ))
+
+        entries.sort(key=lambda entry: (
+            entry[0] if entry[0] is not None else 1_000_000,
+            entry[2],
+            entry[3],
+        ))
+
+        minimum = min(self.options.weapon_upgrade_min_level.value, self.options.weapon_upgrade_max_level.value)
+        maximum = max(self.options.weapon_upgrade_min_level.value, self.options.weapon_upgrade_max_level.value)
+        spoiler_handle.write(format_weapon_upgrade_spoiler(
+            player_name=self.multiworld.get_player_name(self.player),
+            mode=self.options.weapon_upgrade_mode.current_key,
+            min_level=minimum,
+            max_level=maximum,
+            variance=self.options.weapon_upgrade_variance.value,
+            entries=entries,
+        ))
 
     def fill_slot_data(self) -> dict:
         data = self.options.as_dict(
