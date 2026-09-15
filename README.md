@@ -13,6 +13,8 @@ The base Archipelago mod works with a single `dinput8.dll` file.
 - Place the `dinput8.dll` file inside the `Game` folder in the game folder, next to the executable.
 - If playing on Linux, add `WINEDLLOVERRIDES="dinput8.dll=n,b" %command%` to the game's launch options on Steam.
 
+If you enable Enemy Randomizer V1, use the special ModEngine installation described below instead of installing the Archipelago DLL as the primary `dinput8.dll`.
+
 ### Generating the world
 
 - Download the latest version of the Archipelago client available [here](https://github.com/ArchipelagoMW/Archipelago/releases/latest).
@@ -45,12 +47,38 @@ enemy_randomizer_bosses: true
 enemy_randomizer_scaling: true
 ```
 
-Enemy randomization uses the external [DS2 Item & Enemy Randomizer](https://www.nexusmods.com/darksouls2/mods/1317). Install it separately so `DS2SRandomizer.exe` is available at one of these locations:
+### Enemy Randomizer installation
+
+Enemy randomization uses the external [DS2 Item & Enemy Randomizer](https://www.nexusmods.com/darksouls2/mods/1317), which uses ModEngine and has its own `dinput8.dll`. The two DLLs must therefore be chain-loaded rather than overwriting each other.
+
+1. Install the full DS2 Item & Enemy Randomizer into the Scholar `Game` folder. Keep its `dinput8.dll`, `modengine.ini`, `ds2s_heap_x.dll`, and `randomizer` folder.
+2. Take the **Scholar/x64** Archipelago DLL and rename it from `dinput8.dll` to `archipelago.dll`.
+3. Put `archipelago.dll` next to `DarkSoulsII.exe`.
+4. Open `modengine.ini` and set the ModEngine chain entry to:
+
+```ini
+chainDInput8DLLPath="\archipelago.dll"
+```
+
+5. Leave `ds2s_heap_x.dll` in the Game folder. The Archipelago client loads that runtime support itself so ModEngine's single chain slot can be used by `archipelago.dll`.
+
+The resulting layout should include:
 
 ```text
-<Game>\Game\randomizer\DS2SRandomizer.exe
-<Game>\Game\DS2SRandomizer.exe
+Game\
+  DarkSoulsII.exe
+  dinput8.dll                 <- DS2 Item & Enemy Randomizer / ModEngine
+  modengine.ini
+  ds2s_heap_x.dll
+  archipelago.dll             <- renamed Archipelago Scholar client
+  randomizer\
+    DS2SRandomizer.exe
+    ...
 ```
+
+Do **not** overwrite the enemy randomizer's `dinput8.dll` with the Archipelago one when using Enemy Randomizer V1. The client detects that incorrect setup and refuses to start an enemy-randomizer session.
+
+### First run for a seed
 
 The first time you connect to a new Archipelago enemy-randomizer seed, the client writes the deterministic `er_config.txt` for that seed and stops normal session setup until the randomized params have been applied. Then:
 
