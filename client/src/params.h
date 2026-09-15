@@ -43,3 +43,5 @@ enum ItemCategory {
 
 std::map<int32_t, StatBlock> get_weapon_requirements();
 std::map<int32_t, int8_t> get_item_categories();
+std::map<int32_t, int8_t> get_weapon_max_upgrades();
+int8_t scale_weapon_upgrade(int32_t item_id, int8_t normalized_level);
