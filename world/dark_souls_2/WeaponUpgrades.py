@@ -120,3 +120,21 @@ def format_randomized_weapon_upgrade_spoiler(
         )
 
     return "\n".join(lines) + "\n"
+
+
+def format_weapon_upgrade_spoiler(
+    player_name: str,
+    mode: str,
+    min_level: int,
+    max_level: int,
+    variance: int,
+    entries: list[tuple[int | None, int, str, str, str, int]],
+) -> str:
+    """Backward-compatible alias used by the preserved base world implementation."""
+    return format_progression_weapon_upgrade_spoiler(
+        player_name=player_name,
+        min_level=min_level,
+        max_level=max_level,
+        variance=variance,
+        entries=entries,
+    )
