@@ -1,3 +1,4 @@
+import random
 import string
 
 from worlds.AutoWorld import World, WebWorld
@@ -6,6 +7,7 @@ from BaseClasses import Item, ItemClassification, Location, Region, LocationProg
 from .Items import item_list, repeatable_categories, group_table, ItemCategory, DLC
 from .Locations import location_table, location_name_groups
 from .Options import DS2Options
+from .WeaponUpgrades import roll_normalized_upgrade
 from typing import Optional
 
 class DS2Location(Location):
@@ -546,5 +548,74 @@ class DS2World(World):
         
         if self.options.combat_logic == "disabled": return
 
+    def _build_weapon_upgrade_levels(self) -> list[list[int]]:
+        if self.options.weapon_upgrade_mode == "off":
+            return []
+
+        spheres = list(self.multiworld.get_spheres())
+        rng = random.Random(f"{self.multiworld.seed_name}:{self.player}:ds2-weapon-upgrades")
+        mapped_locations: set[tuple[int, int]] = set()
+        result: list[list[int]] = []
+        denominator = max(1, len(spheres) - 1)
+
+        for sphere_index, sphere in enumerate(spheres):
+            progress = sphere_index / denominator
+            for location in sorted(sphere, key=lambda loc: (loc.player, loc.address or -1, loc.name)):
+                item = location.item
+                if (
+                    item is None
+                    or item.player != self.player
+                    or getattr(item, "category", None) not in [ItemCategory.WEAPON, ItemCategory.SHIELD]
+                    or not isinstance(location.address, int)
+                ):
+                    continue
+
+                level = roll_normalized_upgrade(
+                    rng,
+                    self.options.weapon_upgrade_mode.value,
+                    self.options.weapon_upgrade_min_level.value,
+                    self.options.weapon_upgrade_max_level.value,
+                    self.options.weapon_upgrade_variance.value,
+                    progress,
+                )
+                result.append([location.player, location.address, level])
+                mapped_locations.add((location.player, location.address))
+
+        # Full-access seeds should place every sendable location into a sphere. Keep a deterministic
+        # fallback for excluded/minimal-access locations so randomized weapons there are not silently +0.
+        remaining_locations = sorted(
+            self.multiworld.get_filled_locations(),
+            key=lambda loc: (loc.player, loc.address or -1, loc.name),
+        )
+        for location in remaining_locations:
+            item = location.item
+            key = (location.player, location.address) if isinstance(location.address, int) else None
+            if (
+                key is None
+                or key in mapped_locations
+                or item is None
+                or item.player != self.player
+                or getattr(item, "category", None) not in [ItemCategory.WEAPON, ItemCategory.SHIELD]
+            ):
+                continue
+
+            level = roll_normalized_upgrade(
+                rng,
+                self.options.weapon_upgrade_mode.value,
+                self.options.weapon_upgrade_min_level.value,
+                self.options.weapon_upgrade_max_level.value,
+                self.options.weapon_upgrade_variance.value,
+                1.0,
+            )
+            result.append([location.player, location.address, level])
+
+        return result
+
     def fill_slot_data(self) -> dict:
-        return self.options.as_dict("death_link","game_version","no_weapon_req","no_spell_req","no_equip_load","infinite_lifegems","randomize_starting_loadout", "starting_weapon_requirement", "autoequip")
+        data = self.options.as_dict(
+            "death_link", "game_version", "no_weapon_req", "no_spell_req", "no_equip_load",
+            "infinite_lifegems", "randomize_starting_loadout", "starting_weapon_requirement",
+            "autoequip", "weapon_upgrade_mode"
+        )
+        data["weapon_upgrade_levels"] = self._build_weapon_upgrade_levels()
+        return data
