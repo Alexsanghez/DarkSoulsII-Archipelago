@@ -60,6 +60,26 @@ def render_ds2s_enemy_config(seed: int, randomize_bosses: bool, scaling: bool) -
     return "\n".join(lines) + "\n"
 
 
+def build_enemy_randomizer_slot_data(
+    enabled: bool,
+    seed_name: str,
+    player: int,
+    randomize_bosses: bool,
+    scaling: bool,
+) -> dict:
+    if not enabled:
+        return {"enemy_randomizer": 0}
+
+    seed = derive_enemy_randomizer_seed(seed_name, player)
+    return {
+        "enemy_randomizer": 1,
+        "enemy_randomizer_seed": seed,
+        "enemy_randomizer_bosses": _flag(randomize_bosses),
+        "enemy_randomizer_scaling": _flag(scaling),
+        "enemy_randomizer_config": render_ds2s_enemy_config(seed, randomize_bosses, scaling),
+    }
+
+
 def format_enemy_randomizer_spoiler(
     player_name: str,
     seed: int,
