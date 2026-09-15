@@ -13,6 +13,12 @@ static std::string read_all(const fs::path& path)
     return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
+static void create_runtime_files(const fs::path& root)
+{
+    std::ofstream(root / "modengine.ini") << "[misc]\nchainDInput8DLLPath=\"\\archipelago.dll\"\n";
+    std::ofstream(root / "ds2s_heap_x.dll").put('\0');
+}
+
 int main()
 {
     const fs::path original = fs::current_path();
@@ -21,17 +27,23 @@ int main()
     fs::create_directories(root);
     fs::current_path(root);
 
+    assert(!enemy_randomizer_runtime_files_available());
     assert(prepare_enemy_randomizer_config("#SEED 1\n") == EnemyRandomizerPrepareResult::MissingInstallation);
 
     fs::create_directories(root / "randomizer");
     std::ofstream(root / "randomizer" / "DS2SRandomizer.exe").put('\0');
+    assert(!enemy_randomizer_runtime_files_available());
+    assert(prepare_enemy_randomizer_config("#SEED 1\n") == EnemyRandomizerPrepareResult::MissingInstallation);
 
+    create_runtime_files(root);
+    assert(enemy_randomizer_runtime_files_available());
     assert(prepare_enemy_randomizer_config("#SEED 2\n") == EnemyRandomizerPrepareResult::Updated);
     assert(read_all(root / "randomizer" / "er_config.txt") == "#SEED 2\n");
     assert(prepare_enemy_randomizer_config("#SEED 2\n") == EnemyRandomizerPrepareResult::Unchanged);
 
     fs::remove_all(root / "randomizer");
     std::ofstream(root / "DS2SRandomizer.exe").put('\0');
+    assert(enemy_randomizer_runtime_files_available());
     assert(prepare_enemy_randomizer_config("#SEED 3\n") == EnemyRandomizerPrepareResult::Updated);
     assert(read_all(root / "er_config.txt") == "#SEED 3\n");
 
