@@ -9,6 +9,7 @@
 #include "patches.h"
 #include "memory.h"
 #include "params.h"
+#include "enemy_randomizer_bridge.h"
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -54,7 +55,8 @@ void handle_input()
                 spdlog::info("List of available commands : \n"
                     "/help : Prints this help message.\n"
                     "!help : Prints the help message related to Archipelago.\n"
-                    "/connect {SERVER_IP}:{SERVER_PORT} {SLOT_NAME} [password:{PASSWORD}] : Connect to the specified server.");
+                    "/connect {SERVER_IP}:{SERVER_PORT} {SLOT_NAME} [password:{PASSWORD}] : Connect to the specified server.\n"
+                    "/enemy-randomizer : Launch the installed DS2 Item & Enemy Randomizer using the AP-generated configuration.");
             }
             else if (line.find("/connect ") == 0) {
 
@@ -82,6 +84,20 @@ void handle_input()
                 }
 
                 setup_apclient(address, slot_name, password);
+            }
+            else if (line == "/enemy-randomizer") {
+                if (launch_enemy_randomizer()) {
+                    spdlog::info(
+                        "Opened DS2 Item & Enemy Randomizer. Apply the prepared enemy configuration, "
+                        "then close and restart Dark Souls II before reconnecting to Archipelago."
+                    );
+                }
+                else {
+                    spdlog::warn(
+                        "Could not find or launch DS2SRandomizer.exe. Install it in Game\\randomizer "
+                        "or next to DarkSoulsII.exe."
+                    );
+                }
             }
             else if (line.find("!") == 0) {
                 apclient_say(line);
