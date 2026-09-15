@@ -33,13 +33,13 @@ class WeaponUpgradeMode(Choice):
     """Controls reinforcement levels for randomized weapons.
 
     Off keeps every randomized weapon at +0.
-    Random chooses a seed-deterministic level between the configured minimum and maximum.
+    Randomized chooses a seed-deterministic level between the configured minimum and maximum.
     Progression scales weapon levels with Archipelago sphere depth, with optional variance.
     Weapons that naturally cap at +5 are scaled proportionally by the client.
     """
     display_name = "Weapon Upgrade Levels"
     option_off = 0
-    option_random = 1
+    option_randomized = 1
     option_progression = 2
     default = option_off
 
