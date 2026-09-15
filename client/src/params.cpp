@@ -107,3 +107,18 @@ int8_t scale_weapon_upgrade(int32_t item_id, int8_t normalized_level)
     // Rounded proportional mapping: +10 scale -> each weapon's actual reinforcement cap.
     return static_cast<int8_t>((normalized * max_upgrade + 5) / 10);
 }
+
+int8_t select_cap_specific_weapon_upgrade(int32_t item_id, int8_t plus5_level, int8_t plus10_level)
+{
+    static std::map<int32_t, int8_t> weapon_caps = get_weapon_max_upgrades();
+
+    auto cap = weapon_caps.find(item_id);
+    if (cap == weapon_caps.end() || cap->second <= 0) return 0;
+
+    int max_upgrade = std::clamp(static_cast<int>(cap->second), 0, 10);
+    int candidate = max_upgrade <= 5
+        ? static_cast<int>(plus5_level)
+        : static_cast<int>(plus10_level);
+
+    return static_cast<int8_t>(std::clamp(candidate, 0, max_upgrade));
+}
