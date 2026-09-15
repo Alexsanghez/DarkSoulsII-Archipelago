@@ -30,12 +30,11 @@ class StartingWeaponRequirement(Choice):
     default = option_usable_with_two_hands
 
 class WeaponUpgradeMode(Choice):
-    """Controls reinforcement levels for randomized weapons.
+    """Controls reinforcement levels for randomized weapons and shields.
 
-    Off keeps every randomized weapon at +0.
-    Randomized chooses a seed-deterministic level between the configured minimum and maximum.
-    Progression scales weapon levels with Archipelago sphere depth, with optional variance.
-    Weapons that naturally cap at +5 are scaled proportionally by the client.
+    Off keeps every randomized weapon/shield at +0.
+    Randomized upgrades a configurable percentage independently of progression, with separate +5 and +10 ranges.
+    Progression scales reinforcement levels with Archipelago sphere depth, with optional variance.
     """
     display_name = "Weapon Upgrade Levels"
     option_off = 0
@@ -43,15 +42,50 @@ class WeaponUpgradeMode(Choice):
     option_progression = 2
     default = option_off
 
+class WeaponUpgradePercentage(Range):
+    """Percentage of randomized weapons/shields that receive a non-vanilla reinforcement roll in randomized mode."""
+    display_name = "Percentage of Randomized Weapons"
+    range_start = 0
+    range_end = 100
+    default = 33
+
+class WeaponUpgradePlus5MinLevel(Range):
+    """Minimum reinforcement candidate for equipment whose real reinforcement cap is +5."""
+    display_name = "Minimum Level of +5 Weapons"
+    range_start = 0
+    range_end = 5
+    default = 1
+
+class WeaponUpgradePlus5MaxLevel(Range):
+    """Maximum reinforcement candidate for equipment whose real reinforcement cap is +5."""
+    display_name = "Maximum Level of +5 Weapons"
+    range_start = 0
+    range_end = 5
+    default = 5
+
+class WeaponUpgradePlus10MinLevel(Range):
+    """Minimum reinforcement candidate for equipment whose real reinforcement cap is +10."""
+    display_name = "Minimum Level of +10 Weapons"
+    range_start = 0
+    range_end = 10
+    default = 1
+
+class WeaponUpgradePlus10MaxLevel(Range):
+    """Maximum reinforcement candidate for equipment whose real reinforcement cap is +10."""
+    display_name = "Maximum Level of +10 Weapons"
+    range_start = 0
+    range_end = 10
+    default = 10
+
 class WeaponUpgradeMinLevel(Range):
-    """Minimum normalized reinforcement level. Uses the normal +0 to +10 scale."""
+    """Minimum normalized reinforcement level used by progression mode."""
     display_name = "Weapon Upgrade Minimum Level"
     range_start = 0
     range_end = 10
     default = 0
 
 class WeaponUpgradeMaxLevel(Range):
-    """Maximum normalized reinforcement level. +5 weapons are scaled proportionally."""
+    """Maximum normalized reinforcement level used by progression mode."""
     display_name = "Weapon Upgrade Maximum Level"
     range_start = 0
     range_end = 10
@@ -139,6 +173,11 @@ class DS2Options(PerGameCommonOptions):
     randomize_starting_loadout: RandomizeStartingLoadout
     starting_weapon_requirement: StartingWeaponRequirement
     weapon_upgrade_mode: WeaponUpgradeMode
+    weapon_upgrade_percentage: WeaponUpgradePercentage
+    weapon_upgrade_plus5_min_level: WeaponUpgradePlus5MinLevel
+    weapon_upgrade_plus5_max_level: WeaponUpgradePlus5MaxLevel
+    weapon_upgrade_plus10_min_level: WeaponUpgradePlus10MinLevel
+    weapon_upgrade_plus10_max_level: WeaponUpgradePlus10MaxLevel
     weapon_upgrade_min_level: WeaponUpgradeMinLevel
     weapon_upgrade_max_level: WeaponUpgradeMaxLevel
     weapon_upgrade_variance: WeaponUpgradeVariance
