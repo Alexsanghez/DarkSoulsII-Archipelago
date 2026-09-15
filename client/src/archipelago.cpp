@@ -7,6 +7,7 @@
 #include "game_functions.h"
 #include "ds2.h"
 #include "params.h"
+#include "enemy_randomizer_bridge.h"
 
 #include "spdlog/spdlog.h"
 
@@ -17,6 +18,7 @@
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
 
+#include <cstdint>
 #include <map>
 #include <queue>
 #include <string>
@@ -40,6 +42,8 @@ bool death_link = false;
 bool autoequip = false;
 bool save_loaded = false;
 bool _died_by_deathlink = false;
+bool enemy_randomizer_enabled = false;
+uint64_t enemy_randomizer_seed = 0;
 int last_received_index = -1;
 std::set<int32_t> locations_to_ignore;
 std::queue<APClient::NetworkItem> items_to_give;
@@ -61,6 +65,8 @@ void reset_apclient()
 	autoequip = false;
 	save_loaded = false;
 	_died_by_deathlink = false;
+	enemy_randomizer_enabled = false;
+	enemy_randomizer_seed = 0;
 	last_received_index = 0;
 	locations_to_ignore.clear();
 	weapon_randomized_levels.clear();
@@ -95,6 +101,57 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 				"Please change to the correct game version or change the yaml file and generate a new game.");
 			fatal_error = true;
 			return;
+		}
+
+		enemy_randomizer_enabled = data.contains("enemy_randomizer") && data.at("enemy_randomizer").get<int>() != 0;
+		if (enemy_randomizer_enabled) {
+#if defined(_M_IX86)
+			spdlog::error("Enemy Randomizer V1 supports Scholar of the First Sin only.");
+			fatal_error = true;
+			return;
+#else
+			if (!data.contains("enemy_randomizer_config") || !data.at("enemy_randomizer_config").is_string()) {
+				spdlog::error("Enemy Randomizer V1 is enabled, but the slot did not provide enemy_randomizer_config.");
+				fatal_error = true;
+				return;
+			}
+
+			if (data.contains("enemy_randomizer_seed")) {
+				enemy_randomizer_seed = data.at("enemy_randomizer_seed").get<uint64_t>();
+			}
+
+			const std::string enemy_config = data.at("enemy_randomizer_config").get<std::string>();
+			switch (prepare_enemy_randomizer_config(enemy_config)) {
+			case EnemyRandomizerPrepareResult::Updated:
+				spdlog::warn(
+					"Enemy Randomizer V1 configuration updated for seed {}. "
+					"Type /enemy-randomizer, apply the randomization, then restart Dark Souls II before playing.",
+					enemy_randomizer_seed
+				);
+				// Do not continue setting up this session with a newly written enemy layout.
+				// DS2SRandomizer must apply the params before the game is restarted.
+				fatal_error = true;
+				return;
+			case EnemyRandomizerPrepareResult::Unchanged:
+				spdlog::info(
+					"Enemy Randomizer V1 configuration matches seed {}. "
+					"Make sure DS2SRandomizer has already been applied for this seed.",
+					enemy_randomizer_seed
+				);
+				break;
+			case EnemyRandomizerPrepareResult::MissingInstallation:
+				spdlog::error(
+					"Enemy Randomizer V1 is enabled, but DS2SRandomizer.exe was not found. "
+					"Install DS2 Item & Enemy Randomizer in Game\\randomizer or next to DarkSoulsII.exe."
+				);
+				fatal_error = true;
+				return;
+			case EnemyRandomizerPrepareResult::WriteFailed:
+				spdlog::error("Enemy Randomizer V1 could not write er_config.txt.");
+				fatal_error = true;
+				return;
+			}
+#endif
 		}
 
 		if (data.contains("death_link")) {
