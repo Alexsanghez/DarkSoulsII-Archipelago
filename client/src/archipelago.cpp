@@ -6,6 +6,7 @@
 #include "hooks.h"
 #include "game_functions.h"
 #include "ds2.h"
+#include "params.h"
 
 #include "spdlog/spdlog.h"
 
@@ -43,6 +44,7 @@ int last_received_index = -1;
 std::set<int32_t> locations_to_ignore;
 std::queue<APClient::NetworkItem> items_to_give;
 std::map<std::pair<int32_t, int64_t>, int8_t> weapon_upgrade_levels;
+std::map<std::pair<int32_t, int64_t>, std::pair<int8_t, int8_t>> weapon_randomized_levels;
 
 enum ItemsHandling {
 	NO_ITEMS = 0b000,
@@ -63,6 +65,7 @@ void reset_apclient()
 	last_received_index = 0;
 	locations_to_ignore.clear();
 	weapon_upgrade_levels.clear();
+	weapon_randomized_levels.clear();
 	while (!items_to_give.empty()) {
 		items_to_give.pop();
 	}
@@ -131,7 +134,23 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 				int normalized_level = entry.at(2).get<int>();
 				weapon_upgrade_levels[{ source_player, source_location }] = static_cast<int8_t>(std::clamp(normalized_level, 0, 10));
 			}
-			spdlog::info("Loaded {} randomized weapon reinforcement levels", weapon_upgrade_levels.size());
+			spdlog::info("Loaded {} progression weapon reinforcement levels", weapon_upgrade_levels.size());
+		}
+
+		weapon_randomized_levels.clear();
+		if (data.contains("weapon_randomized_levels") && data.at("weapon_randomized_levels").is_array()) {
+			for (const auto& entry : data.at("weapon_randomized_levels")) {
+				if (!entry.is_array() || entry.size() != 4) continue;
+				int32_t source_player = entry.at(0).get<int32_t>();
+				int64_t source_location = entry.at(1).get<int64_t>();
+				int plus5_level = entry.at(2).get<int>();
+				int plus10_level = entry.at(3).get<int>();
+				weapon_randomized_levels[{ source_player, source_location }] = {
+					static_cast<int8_t>(std::clamp(plus5_level, 0, 5)),
+					static_cast<int8_t>(std::clamp(plus10_level, 0, 10))
+				};
+			}
+			spdlog::info("Loaded {} randomized weapon reinforcement candidates", weapon_randomized_levels.size());
 		}
 
 		locations_to_ignore.insert(1700000); // estus flask from emerald herald
@@ -213,6 +232,16 @@ void setup_apclient(std::string URI, std::string slot_name, std::string password
 				auto upgrade = weapon_upgrade_levels.find({ ap->get_player_number(), item.location });
 				if (upgrade != weapon_upgrade_levels.end()) {
 					local_weapon_upgrades[item.location] = upgrade->second;
+				}
+				else {
+					auto randomized_upgrade = weapon_randomized_levels.find({ ap->get_player_number(), item.location });
+					if (randomized_upgrade != weapon_randomized_levels.end()) {
+						local_weapon_upgrades[item.location] = select_cap_specific_normalized_upgrade(
+							static_cast<int32_t>(item.item),
+							randomized_upgrade->second.first,
+							randomized_upgrade->second.second
+						);
+					}
 				}
 			}
 			else {
@@ -302,6 +331,16 @@ int64_t get_next_item(int8_t& normalized_upgrade)
 		auto upgrade = weapon_upgrade_levels.find({ network_item.player, network_item.location });
 		if (upgrade != weapon_upgrade_levels.end()) {
 			normalized_upgrade = upgrade->second;
+		}
+		else {
+			auto randomized_upgrade = weapon_randomized_levels.find({ network_item.player, network_item.location });
+			if (randomized_upgrade != weapon_randomized_levels.end()) {
+				normalized_upgrade = select_cap_specific_normalized_upgrade(
+					static_cast<int32_t>(network_item.item),
+					randomized_upgrade->second.first,
+					randomized_upgrade->second.second
+				);
+			}
 		}
 
 		items_to_give.pop();
