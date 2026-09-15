@@ -1,6 +1,7 @@
 import unittest
 
 from .EnemyRandomizer import (
+    build_enemy_randomizer_slot_data,
     derive_enemy_randomizer_seed,
     format_enemy_randomizer_spoiler,
     render_ds2s_enemy_config,
@@ -52,6 +53,31 @@ class EnemyRandomizerTests(unittest.TestCase):
         self.assertIn("#BOSS_SCALING 0\n", text)
         self.assertIn("#ENEMY_RANDO 1\n", text)
         self.assertIn("#BOSS_RANDO 1\n", text)
+
+    def test_disabled_slot_data_contains_only_disabled_marker(self):
+        data = build_enemy_randomizer_slot_data(
+            enabled=False,
+            seed_name="AP_123456",
+            player=1,
+            randomize_bosses=True,
+            scaling=True,
+        )
+        self.assertEqual({"enemy_randomizer": 0}, data)
+
+    def test_enabled_slot_data_contains_seed_flags_and_external_config(self):
+        data = build_enemy_randomizer_slot_data(
+            enabled=True,
+            seed_name="AP_123456",
+            player=1,
+            randomize_bosses=False,
+            scaling=True,
+        )
+        self.assertEqual(1, data["enemy_randomizer"])
+        self.assertEqual(0, data["enemy_randomizer_bosses"])
+        self.assertEqual(1, data["enemy_randomizer_scaling"])
+        self.assertEqual(derive_enemy_randomizer_seed("AP_123456", 1), data["enemy_randomizer_seed"])
+        self.assertIn(f"#SEED {data['enemy_randomizer_seed']}\n", data["enemy_randomizer_config"])
+        self.assertIn("#BOSS_RANDO 0\n", data["enemy_randomizer_config"])
 
     def test_spoiler_records_v1_configuration(self):
         text = format_enemy_randomizer_spoiler(
