@@ -6,7 +6,7 @@ Dark Souls II client and world implementations for the [Archipelago multiworld r
 
 ### Installing the mod
 
-The mod works with a single `dinput8.dll` file.
+The base Archipelago mod works with a single `dinput8.dll` file.
 
 - Download the dll and apworld files from the [latest release](https://github.com/WildBunnie/DarkSoulsII-Archipelago/releases/latest) for your game version.
 - Rename the dll file to `dinput8.dll`.
@@ -30,6 +30,36 @@ The mod works with a single `dinput8.dll` file.
 - In that console type `/connect server_address:port slot_name password`, replacing the correct values. The password is optional and the slot name is the name you placed in the yaml file.
 - For example, if you host on Archipelago's website it would look something like `/connect archipelago.gg:123456 JohnSouls`.
 - Start a new game and enjoy.
+
+## Enemy Randomizer V1
+
+Enemy Randomizer V1 is optional and currently supports **Scholar of the First Sin only**. The base Archipelago item randomizer still supports vanilla DS2 when this option is disabled.
+
+V1 randomizes normal enemies and can randomize bosses while using location-based enemy/boss scaling. NPCs, invaders, summons, mimics, lizards, wandering bosses, and multiboss are deliberately left unchanged for the first version.
+
+Add or enable these options in your generated YAML:
+
+```yaml
+enemy_randomizer: true
+enemy_randomizer_bosses: true
+enemy_randomizer_scaling: true
+```
+
+Enemy randomization uses the external [DS2 Item & Enemy Randomizer](https://www.nexusmods.com/darksouls2/mods/1317). Install it separately so `DS2SRandomizer.exe` is available at one of these locations:
+
+```text
+<Game>\Game\randomizer\DS2SRandomizer.exe
+<Game>\Game\DS2SRandomizer.exe
+```
+
+The first time you connect to a new Archipelago enemy-randomizer seed, the client writes the deterministic `er_config.txt` for that seed and stops normal session setup until the randomized params have been applied. Then:
+
+1. Type `/enemy-randomizer` in the Archipelago console.
+2. Apply/run the randomization in the DS2 Item & Enemy Randomizer window.
+3. Close Dark Souls II completely.
+4. Start Dark Souls II again and reconnect to the same Archipelago room.
+
+The same Archipelago seed and player slot produce the same enemy-randomizer seed. The Archipelago spoiler records that seed and the selected V1 settings; the external randomizer's cheatsheet contains the actual enemy and boss placements.
 
 ## Building Locally
 
@@ -55,7 +85,8 @@ This can happen for multiple reasons:
 
 https://github.com/SeanPesce/DLL_Wrapper_Generator \
 https://github.com/black-sliver/apclientpp \
-https://github.com/pseudostripy/DS2S-META
+https://github.com/pseudostripy/DS2S-META \
+https://github.com/cboyo/DS2SRandomizer
 
 ## Special Thank you
 
