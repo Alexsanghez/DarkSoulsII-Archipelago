@@ -94,8 +94,8 @@ void handle_input()
                 }
                 else {
                     spdlog::warn(
-                        "Could not find or launch DS2SRandomizer.exe. Install it in Game\\randomizer "
-                        "or next to DarkSoulsII.exe."
+                        "Could not find or launch DS2SRandomizer.exe. Make sure the full DS2 randomizer "
+                        "runtime is installed (modengine.ini, ds2s_heap_x.dll, and the randomizer folder)."
                     );
                 }
             }
@@ -211,6 +211,16 @@ void run()
     std::filesystem::create_directory("archipelago/textures");
 
     setup_logging();
+
+#if defined(_M_X64)
+    // When the DS2 enemy randomizer is installed, ModEngine must chain-load this DLL.
+    // Load its heap fix as early as possible from our worker thread so the ModEngine
+    // chain slot can be used by archipelago.dll instead of ds2s_heap_x.dll.
+    if (enemy_randomizer_runtime_files_available() && !load_enemy_randomizer_runtime_support()) {
+        spdlog::warn("Found DS2SRandomizer files but failed to load ds2s_heap_x.dll.");
+    }
+#endif
+
     force_offline();
 
     uintptr_t base_address = get_base_address();
